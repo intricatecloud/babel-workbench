@@ -4,7 +4,6 @@ module.exports = api => {
   }
 
   const presets = [
-    '@babel/preset-react',
     '@babel/preset-typescript',
   ];
 

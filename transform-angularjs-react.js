@@ -1,5 +1,6 @@
 module.exports = function(babel) {
   const { types: t } = babel;
+  let templateNode;
 
   const getBindingNameAndTypeFromBindings = node => {
     return node.declarations[0].init.properties.map(property => {
@@ -15,6 +16,20 @@ module.exports = function(babel) {
     return node.declarations[0].init.properties.map(property => {
       return { name: property.key.name, value: property.value.property.name };
     });
+  };
+
+  const renderBodyBlockStatement = templateNode => {
+    console.log('template node', templateNode);
+    // ${templateNode.declarations[0].init.quasis[0].value.cooked}
+    const sourceString = `
+    const render = () => {
+      return ${templateNode.declarations[0].init.quasis[0].value.cooked};
+    }
+      `;
+    const ast = babel.parse(sourceString, {filename: 'file.js', configFile: false, plugins: ['@babel/plugin-syntax-jsx']});
+    console.log('ast', ast);
+    // return ast.program.body[0].body;
+    return ast.program.body[0].declarations[0].init.body;
   };
 
   return {
@@ -50,6 +65,10 @@ module.exports = function(babel) {
             )
           );
           path.container.splice(path.key + 3, 0, propTypeExpression);
+        } else if (path.node.declarations[0].id.name === 'template') {
+          templateNode = path.node;
+          console.log('saving template node', templateNode);
+          path.remove();
         }
       },
       ClassDeclaration(path) {
@@ -62,32 +81,13 @@ module.exports = function(babel) {
         })[0];
         const bindings = getBindingNameAndTypeFromPropTypes(propTypesNode);
 
-        // get the template
-        const templateNode = path.container.filter(sibling => {
-          return sibling.type === 'VariableDeclaration' && sibling.declarations[0].id.name === 'template';
-        })[0];
-        const renderBodyBlockStatement = templateNode => {
-          console.log('template node', templateNode);
-// ${templateNode.declarations[0].init.quasis[0].value.cooked}
-          const sourceString = `
-          const render = () => {
-            return <div></div>;
-          }
-            `;
-          const ast = babel.parse(sourceString, {filename: 'file.js', configFile: false, plugins: ['@babel/plugin-syntax-jsx']});
-          console.log('ast', ast);
-          // return ast.program.body[0].body;
-          return ast.program.body[0].declarations[0].init.body;
-        };
+        // get the template node to insert into render()
         const renderBlock = renderBodyBlockStatement(templateNode);
         console.log('render body block statement', renderBlock);
 
         // move the template into a render method
         const renderFunc = t.classMethod('method', t.identifier('render'), [], t.blockStatement([]));
-        console.log('render func');
-        console.log(renderFunc);
         renderFunc.body = renderBlock;
-        console.log(renderFunc);
         path.get('body').pushContainer('body', renderFunc);
 
         path.traverse({
