@@ -15,7 +15,7 @@ const bindings = {
 
 class ModalComponent {
   $onInit() {
-    this.modalIsOpen();
+    this.onModalOpen();
   }
 }
 

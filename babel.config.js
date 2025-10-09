@@ -3,9 +3,13 @@ module.exports = api => {
     api.cache(true);
   }
 
+<<<<<<< Updated upstream
   const presets = [
     '@babel/preset-typescript',
   ];
+=======
+  const presets = [];
+>>>>>>> Stashed changes
 
   const plugins = [
     [
